@@ -11,6 +11,10 @@ http.createServer(function(req, res) {
     console.log("process exit!");
     process.exit();
   }
+  if (q.pathname === "/api/hello") {
+    res.write("hello");
+    return res.end();
+  }
   var filename = "." + q.pathname;
   fs.readFile(filename, function(err, data) {
     if (err) {
