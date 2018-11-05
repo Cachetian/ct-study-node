@@ -1,0 +1,16 @@
+{
+  "name": "MyNode",
+  "version": "1.0.0",
+  "description": "",
+  "main": "MyNode.js",
+  "dependencies" :
+    { "sqlite3" : "4.0.3"
+    , "http" : "0.0.0"
+    , "url" : "0.11.0"
+    , "fs" : "0.0.2"
+    , "mime-types" : "2.1.21"
+    , "http-proxy" : "1.17.0"
+  },
+  "author": "cachetian",
+  "license": "ISC"
+}
