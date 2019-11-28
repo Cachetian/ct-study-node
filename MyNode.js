@@ -4,12 +4,11 @@
  * The goal is that sometimes you want to quickly implement a end to end app.
  * Full-stack technique in one file, db > service > ui, that is MyNode.js
  *
+ * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 (function() {
   "use strict";
-
-  // run it!
-  return MyNode();
 
   function MyNode() {
     // if window object found, means in Broswer environment
@@ -188,4 +187,7 @@
       });
     }
   }
+
+  // run it!
+  return MyNode();
 })();
