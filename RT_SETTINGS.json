@@ -1,0 +1,10 @@
+{
+  "APP_CONFIG": {
+    "APP_TITLE" : "Sky Copy",
+    "VISIBLE_BUTTONS" : ["SelectAllText", "SaveText", "Refresh"]
+  },
+  "LOC_UI5": {
+    "ENABLED" : true,
+    "LIB_PATH" : "/Applications/SAPWebIDE/eclipse/plugins/com.sap.webide.orionplugin_1.53.9/ui5/1.70.0"
+  }
+}
