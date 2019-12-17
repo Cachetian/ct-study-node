@@ -13,10 +13,12 @@
 (function() {
   "use strict";
 
-  function MyNode() {
+  function MyNode(dir) {
+    var _dir = dir;
+
     // Decide server or broser mode. (if window object found means in Broswer environment)
     if (typeof window === 'undefined') {
-      MyServer();
+      MyServer(dir);
     } else {
       MyBrower();
     }
@@ -31,7 +33,7 @@
           // MVC - M Models
           var oViewModel = new sap.ui.model.json.JSONModel({
             info: {
-              textCount:0
+              textCount: 0
             },
             buttons: {
               CreateMyNode: {
@@ -59,14 +61,14 @@
           var oConfigModel = new sap.ui.model.json.JSONModel("/api/config_data");
           sap.ui.getCore().setModel(oConfigModel, "appConfig");
 
-          oDataModel.dataLoaded().then(function(){
-              oViewModel.setProperty("/info/textCount", oDataModel.getProperty("/myText").length);
+          oDataModel.dataLoaded().then(function() {
+            oViewModel.setProperty("/info/textCount", oDataModel.getProperty("/myText").length);
           });
 
-          oConfigModel.dataLoaded().then(function(){
+          oConfigModel.dataLoaded().then(function() {
             var aBtns = oConfigModel.getProperty("/VISIBLE_BUTTONS");
             for (var i = 0; i < aBtns.length; i++) {
-              oViewModel.setProperty("/buttons/"+ aBtns[i], true);
+              oViewModel.setProperty("/buttons/" + aBtns[i], true);
             }
           });
 
@@ -79,6 +81,10 @@
               get_model_data: function(oEvent) {
                 jQuery.get("/api/model_data", function(data) {
                   oDataModel.setData(JSON.parse(data));
+                  oFilesModel.refresh();
+                });
+                jQuery.get("/api/file_data", function(data) {
+                  oFilesModel.setData(JSON.parse(data));
                   oFilesModel.refresh();
                 });
               }
@@ -105,7 +111,7 @@
                     rows: 24,
                     maxLength: 4096,
                     value: "{appData>/myText}",
-                    liveChange: function(oEvent){
+                    liveChange: function(oEvent) {
                       oViewModel.setProperty("/info/textCount", oEvent.getParameter("value").length);
                       oViewModel.refresh();
                     }
@@ -225,7 +231,7 @@
   /**
    * Server side
    */
-  function MyServer() {
+  function MyServer(dir) {
     console.log("MyNode->MyServer start");
     var
       sqlite3 = require('sqlite3'),
@@ -233,7 +239,8 @@
       httpProxy = require('http-proxy'),
       url = require('url'),
       fs = require('fs'),
-      mime = require('mime-types');
+      mime = require('mime-types'),
+      path = require('path');
     const
       SQL_CREATE = " CREATE TABLE IF NOT EXISTS MY_NODE (id INTEGER PRIMARY KEY AUTOINCREMENT, name varchar(36), value varchar(255)) ",
       SQL_UPDATE = " INSERT INTO MY_NODE(name,value) VALUES (?,?) ",
@@ -248,17 +255,33 @@
         ENABLED: false,
         LIB_PATH: "."
       },
+      LOC_SRC: {
+        ENABLED: false,
+        SRC_PATH: "/MyNode.js"
+      },
       UPLOAD_PATH: "./uploads/"
     };
     try {
-      var RT_SETTINGS_JSON = JSON.parse(fs.readFileSync("./RT_SETTINGS.json", 'utf8'));
+      var curDir = __dirname;
+      if (dir) {
+        curDir = dir;
+      }
+      var rtPath = path.resolve(curDir, "RT_SETTINGS.json");
+      console.log(rtPath);
+      var RT_SETTINGS_JSON = JSON.parse(fs.readFileSync(rtPath, 'utf8'));
       RT_SETTINGS.APP_CONFIG.APP_TITLE = RT_SETTINGS_JSON.APP_CONFIG.APP_TITLE;
       if (RT_SETTINGS_JSON.APP_CONFIG.VISIBLE_BUTTONS) {
         RT_SETTINGS.APP_CONFIG.VISIBLE_BUTTONS.length = 0;
         RT_SETTINGS.APP_CONFIG.VISIBLE_BUTTONS = RT_SETTINGS_JSON.APP_CONFIG.VISIBLE_BUTTONS;
       }
-      RT_SETTINGS.LOC_UI5.ENABLED = RT_SETTINGS_JSON.LOC_UI5.ENABLED;
-      RT_SETTINGS.LOC_UI5.LIB_PATH = RT_SETTINGS_JSON.LOC_UI5.LIB_PATH;
+      if (RT_SETTINGS_JSON.LOC_UI5) {
+        RT_SETTINGS.LOC_UI5.ENABLED = RT_SETTINGS_JSON.LOC_UI5.ENABLED;
+        RT_SETTINGS.LOC_UI5.LIB_PATH = RT_SETTINGS_JSON.LOC_UI5.LIB_PATH;
+      }
+      if (RT_SETTINGS_JSON.LOC_SRC) {
+        RT_SETTINGS.LOC_SRC.ENABLED = RT_SETTINGS_JSON.LOC_SRC.ENABLED;
+        RT_SETTINGS.LOC_SRC.SRC_PATH = RT_SETTINGS_JSON.LOC_SRC.SRC_PATH;
+      }
       if (RT_SETTINGS_JSON.UPLOAD_PATH) {
         RT_SETTINGS.UPLOAD_PATH = RT_SETTINGS_JSON.UPLOAD_PATH;
       }
@@ -266,7 +289,7 @@
         fs.mkdirSync(RT_SETTINGS.UPLOAD_PATH);
       }
     } catch (e) {
-      console.log("no RT_SETTINGS.json found");
+      console.log("no RT_SETTINGS.json found. " + e);
     }
     var RT_DATA = {
       APP_DATA: {
@@ -414,8 +437,11 @@
             if (RT_SETTINGS.LOC_UI5.ENABLED) {
               LIB_PATH = "";
             }
-            console.log(LIB_PATH);
-            const SRC_PATH = "/MyNode.js";
+            var SRC_PATH = "/MyNode.js";
+            if (RT_SETTINGS.LOC_SRC.ENABLED) {
+              SRC_PATH = RT_SETTINGS.LOC_SRC.SRC_PATH;
+            }
+            // console.log(LIB_PATH);
             var index_html = Buffer.from("PCFET0NUWVBFIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgaHR0cC1lcXVpdj0iWC1VQS1Db21wYXRpYmxlIiBjb250ZW50PSJJRT1lZGdlIj48bWV0YSBjaGFyc2V0PSJ1dGYtOCI+PHRpdGxlPkFQUF9USVRMRTwvdGl0bGU+PHNjcmlwdCBpZD0ic2FwLXVpLWJvb3RzdHJhcCJzcmM9IkxJQl9QQVRIL3Jlc291cmNlcy9zYXAtdWktY29yZS5qcyJkYXRhLXNhcC11aS10aGVtZT0ic2FwX2JlbGl6ZSJkYXRhLXNhcC11aS1iaW5kaW5nU3ludGF4PSJjb21wbGV4ImRhdGEtc2FwLXVpLWxpYnM9InNhcC5tImRhdGEtc2FwLXVpLXByZWxvYWQ9ImFzeW5jIj48L3NjcmlwdD48L2hlYWQ+PGJvZHkgY2xhc3M9InNhcFVpQm9keSIgaWQ9ImNvbnRlbnQiPjwvYm9keT48c2NyaXB0IHNyYz0iU1JDX1BBVEgiPjwvc2NyaXB0PjwvaHRtbD4=", 'base64').toString();
             index_html = index_html.replace(/LIB_PATH/g, LIB_PATH);
             index_html = index_html.replace(/SRC_PATH/g, SRC_PATH);
@@ -457,7 +483,8 @@
             }
           }
           // Web server - under current folder
-          var filename = "." + q.pathname;
+          // var filename = "." + q.pathname;
+          var filename = curDir + q.pathname;
           // Local UI5 library enablement
           if (RT_SETTINGS.LOC_UI5.ENABLED) {
             if (q.pathname.startsWith("/resources")) {
@@ -487,6 +514,15 @@
     });
   }
 
-  // run!
-  return MyNode();
+  // Decide server or broser mode. (if window object found means in Broswer environment)
+  // if (typeof window === 'undefined') {
+  //   module.exports = MyNode;
+  // } else {
+  //   MyNode();
+  // }
+  try {
+    module.exports = MyNode;
+  } catch (e) {
+    new MyNode();
+  }
 })();
