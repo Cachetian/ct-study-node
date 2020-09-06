@@ -6,7 +6,7 @@
   "dependencies": {
     "fs": "0.0.2",
     "http": "0.0.0",
-    "http-proxy": "1.17.0",
+    "http-proxy": "1.18.1",
     "mime-types": "2.1.21",
     "pdfkit": "^0.8.3",
     "sqlite3": "4.0.3",
